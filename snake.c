@@ -6,6 +6,7 @@
 
 
 #define DELAY 125000
+#define END_GAME_PAUSE 1000000
 #define TRUE 1
 #define FALSE 0
 
@@ -66,7 +67,8 @@ typedef struct snake_segment {
    short exists;
 }snake_segment;
 
-
+/* Function Prototypes */
+void endGameMessage(int y, int x, char* message);
 
 int main(void){
 
@@ -164,9 +166,9 @@ int main(void){
 		}
 
 		// Print snake position coordinates display to buffer
-		mvprintw(max_y - 1, max_x - 6, "%d, %d", snake[0].x, snake[0].y);
+		mvprintw(max_y - 1, max_x - 9, "%d, %d", snake[0].x, snake[0].y);
 		// Print the current score
-		mvprintw(max_y - 1, 0, "SCORE: %d", length);
+		mvprintw(max_y - 1, 1, "SCORE: %d", length);
 
 		//Print food position to buffer
 		attron(COLOR_PAIR(food_color));
@@ -197,6 +199,11 @@ int main(void){
 
 			snake_next_x = snake[0].x + directionX;
 
+			if ((length != 0) && (snake_next_x >= (max_x - 1) || snake_next_x < 1)) {
+				endGameMessage(max_y - 1, (max_x / 2) - 4, "YOU LOSE!");
+				return 0;
+			}
+
 			if (snake_next_x >= (max_x - 1) || snake_next_x < 1) {
 				directionX *= -1;
 			}
@@ -208,6 +215,11 @@ int main(void){
 		else{
 
 			snake_next_y = snake[0].y + directionY;
+
+			if ((length != 0) && (snake_next_y >= (max_y - 1) || snake_next_y < 1)) {
+				endGameMessage(max_y - 1, (max_x / 2) - 4, "YOU LOSE!");
+				return 0;
+			}
 
 			if (snake_next_y >= (max_y - 1) || snake_next_y < 1) {
 				directionY *= -1;
@@ -238,4 +250,13 @@ int main(void){
 
 
 	return 0;
+}
+
+// Display end-of-game message
+void endGameMessage(int y, int x, char* message)
+{
+	mvprintw(y, x, message);
+	refresh();
+	usleep(END_GAME_PAUSE);
+	endwin();
 }
