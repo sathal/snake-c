@@ -6,7 +6,8 @@
 
 
 #define DELAY 125000
-
+#define TRUE 1
+#define FALSE 0
 
 int vertical_flag = 0;
 int horizontal_flag = 1;
@@ -47,6 +48,7 @@ void *key_monitor(void *arg) {
 	}
 }
 
+// Entity to represent a snake segment
 typedef struct snake_segment {
    int x;
    int y;
@@ -80,30 +82,34 @@ int main(void){
 	int length = 0;
 
 
-	//Snake
+	// Define the Snake
 	snake_segment snake[101];
-	snake[0].x = 0;
-	snake[0].y = 0;
+
+	// Initialize the head of the snake
+	snake[0].x = 1;
+	snake[0].y = 1;
 	snake[0].exists = 1;
 
+	// The next snake segment does not exist yet
 	snake[1].exists = 0;
 
-	//Food info
+	// Food info
 	int foodX = 0;
 	int foodY = 0;
-	int food_gone = 1;
+	int food_gone = TRUE;
 	short food_color = 3;
 
-	//Boundaries of game
+	// Boundaries of game
 	int max_y = 0, max_x = 0;
 
-	//Enable coloring
+	// Enable coloring
 	has_colors();
 	start_color();
 
-	//Define snake color
+	// Define snake color
 	init_pair(snake_head_color, COLOR_RED, COLOR_RED);
 	init_pair(snake_body_color, COLOR_MAGENTA, COLOR_MAGENTA);
+	// Define food color
 	init_pair(food_color, COLOR_BLUE, COLOR_BLUE);
 
 
@@ -136,17 +142,21 @@ int main(void){
 
 		//Calculate new food coordinates if da food is gone
 		if(food_gone){
-			foodX = rand() % max_x;
-			foodY = rand() % max_y;
+
+			// Take into account a 1-space boundary along all the sides of the screen
+			foodX = rand() % (max_x - 2) + 1;
+			foodY = rand() % (max_y - 2) + 1;
 
 			//TODO: Make sure we don't place the food on the snake
 
 
-			food_gone = 0;
+			food_gone = FALSE;
 		}
 
-		//Print snake position coordinates display to buffer
+		// Print snake position coordinates display to buffer
 		mvprintw(max_y - 1, max_x - 6, "%d, %d", snake[0].x, snake[0].y);
+		// Print the current score
+		mvprintw(max_y - 1, 0, "SCORE: %d", length);
 
 		//Print food position to buffer
 		attron(COLOR_PAIR(food_color));
@@ -160,6 +170,8 @@ int main(void){
 		usleep(DELAY);
 
 		/* Setup snake's next position */
+
+		// This is where the new segment (end of tail) will be placed if a food is consumed
 		new_tailX = snake[length].x;
 		new_tailY = snake[length].y;
 
@@ -175,7 +187,7 @@ int main(void){
 
 			snake_next_x = snake[0].x + directionX;
 
-			if (snake_next_x >= (max_x) || snake_next_x < 0) {
+			if (snake_next_x >= (max_x - 1) || snake_next_x < 1) {
 				directionX *= -1;
 			}
 
@@ -187,7 +199,7 @@ int main(void){
 
 			snake_next_y = snake[0].y + directionY;
 
-			if (snake_next_y >= (max_y) || snake_next_y < 0) {
+			if (snake_next_y >= (max_y - 1) || snake_next_y < 1) {
 				directionY *= -1;
 			}
 
@@ -197,7 +209,7 @@ int main(void){
 
 		//If the snake eats the food, make him grow!
 		if((snake[0].x == foodX) && (snake[0].y == foodY)){
-			food_gone = 1;
+			food_gone = TRUE;
 
 			length++;
 
