@@ -14,6 +14,9 @@ int horizontal_flag = 1;
 int directionX = 1;
 int directionY = 1;
 
+// Global value for snake length
+int length = 0;
+
 
 
 /* This thread monitors key presses */
@@ -23,21 +26,29 @@ void *key_monitor(void *arg) {
 		switch(getch()){
 
 			case KEY_UP :
+				if(vertical_flag && length != 0) // Prevent snake from doubling back on itself
+					break;
 				directionY = -1;
 				vertical_flag = 1;
 				horizontal_flag = 0;
 				break;
 			case KEY_DOWN :
+				if(vertical_flag && length != 0)
+					break;
 				directionY = 1;
 				vertical_flag = 1;
 				horizontal_flag = 0;
 				break;
 			case KEY_LEFT :
+				if(horizontal_flag && length != 0)
+					break;
 				directionX = -1;
 				vertical_flag = 0;
 				horizontal_flag = 1;
 				break;
 			case KEY_RIGHT :
+				if(horizontal_flag  && length != 0)
+					break;
 				directionX = 1;
 				vertical_flag = 0;
 				horizontal_flag = 1;
@@ -79,7 +90,6 @@ int main(void){
 	int segment = 0;
 	int new_tailX = 0;
 	int new_tailY = 0;
-	int length = 0;
 
 
 	// Define the Snake
