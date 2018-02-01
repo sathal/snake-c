@@ -5,15 +5,17 @@
 #include <stdlib.h>
 
 
-#define DELAY 125000
+#define DELAY 100000 //125000
 #define END_GAME_PAUSE 1000000
 #define TRUE 1
 #define FALSE 0
+#define MAX_LEN 101
 
 int vertical_flag = 0;
 int horizontal_flag = 1;
 int directionX = 1;
 int directionY = 1;
+int tailCollision = FALSE;
 
 // Global value for snake length
 int length = 0;
@@ -69,6 +71,7 @@ typedef struct snake_segment {
 
 /* Function Prototypes */
 void endGameMessage(int y, int x, char* message);
+int hasTailCollision(snake_segment* snake);
 
 int main(void){
 
@@ -87,6 +90,8 @@ int main(void){
 	//Snake info
 	int snake_next_x = 0;
 	int snake_next_y = 0;
+	int snake_prev_head_x = 0;
+	int snake_prev_head_y = 0;
 	short snake_head_color = 1;  //Identifier for snake color
 	short snake_body_color = 2;
 	int segment = 0;
@@ -95,12 +100,15 @@ int main(void){
 
 
 	// Define the Snake
-	snake_segment snake[101];
+	snake_segment snake[MAX_LEN];
+	int index = 0;
+	for(index = 0; index < MAX_LEN; index++)
+		snake[index].exists = FALSE;
 
 	// Initialize the head of the snake
 	snake[0].x = 1;
 	snake[0].y = 1;
-	snake[0].exists = 1;
+	snake[0].exists = TRUE;
 
 	// The next snake segment does not exist yet
 	snake[1].exists = 0;
@@ -178,28 +186,29 @@ int main(void){
 		//Update the screen with the new material
 		refresh();
 
+		if(tailCollision)
+		{
+			endGameMessage(max_y - 1, (max_x / 2) - 4, "YOU LOSE!");
+			return 0;
+		}
+
 		//Pause briefly
 		usleep(DELAY);
 
 		/* Setup snake's next position */
 
-		// This is where the new segment (end of tail) will be placed if a food is consumed
-		new_tailX = snake[length].x;
-		new_tailY = snake[length].y;
-
-		for(segment = length; segment > 0; segment--){
-			snake[segment].x = snake[segment - 1].x;
-			snake[segment].y = snake[segment - 1].y;
-		}
-
-
+		// Save the previous position of the snake's head
+		snake_prev_head_x = snake[0].x;
+		snake_prev_head_y = snake[0].y;
 
 		//Snake is moving horizontally
 		if(horizontal_flag){
 
 			snake_next_x = snake[0].x + directionX;
 
-			if ((length != 0) && (snake_next_x >= (max_x - 1) || snake_next_x < 1)) {
+			// If snake runs into the left or right boundary with a tail, then game over
+			if ((length != 0) && (snake_next_x >= (max_x - 1) || snake_next_x < 1))
+			{
 				endGameMessage(max_y - 1, (max_x / 2) - 4, "YOU LOSE!");
 				return 0;
 			}
@@ -216,7 +225,9 @@ int main(void){
 
 			snake_next_y = snake[0].y + directionY;
 
-			if ((length != 0) && (snake_next_y >= (max_y - 1) || snake_next_y < 1)) {
+			// If snake runs into the top or bottom boundary with a tail, then game over
+			if ((length != 0) && (snake_next_y >= (max_y - 1) || snake_next_y < 1))
+			{
 				endGameMessage(max_y - 1, (max_x / 2) - 4, "YOU LOSE!");
 				return 0;
 			}
@@ -226,6 +237,31 @@ int main(void){
 			}
 
 			snake[0].y += directionY;
+
+		}
+
+		if(hasTailCollision(snake))
+		{
+			tailCollision = TRUE;
+		}
+
+		// This is where the new segment (end of tail) will be placed if a food is consumed
+		new_tailX = snake[length].x;
+		new_tailY = snake[length].y;
+
+		// Update the segments of the snake
+		for(segment = length; segment > 0; segment--){
+			if(segment == 1)
+			{
+				// We need to reference the previous position of the snake's head here because index 0 has already been changed
+				snake[segment].x = snake_prev_head_x;
+				snake[segment].y = snake_prev_head_y;
+			}
+			else
+			{
+				snake[segment].x = snake[segment - 1].x;
+				snake[segment].y = snake[segment - 1].y;
+			}
 		}
 
 
@@ -237,8 +273,7 @@ int main(void){
 
 			snake[length].x = new_tailX;
 			snake[length].y = new_tailY;
-			snake[length].exists = 1;
-			snake[length + 1].exists = 0;
+			snake[length].exists = TRUE;
 
 		}
 
@@ -250,6 +285,24 @@ int main(void){
 
 
 	return 0;
+}
+
+// Check to see if the head of the snake has collided with the tail
+int hasTailCollision(snake_segment* snake)
+{
+	if(length < 4)
+		return FALSE;
+
+	int i;
+	for(i = 3; i < length; i++)
+	{
+		if(((snake[0].x == snake[i].x) && (snake[0].y == snake[i].y)) && (snake[i+1].exists))
+		{
+			return TRUE;
+		}
+	}
+
+	return FALSE;
 }
 
 // Display end-of-game message
