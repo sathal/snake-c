@@ -5,11 +5,12 @@
 #include <stdlib.h>
 
 
-#define DELAY 100000 //125000
-#define END_GAME_PAUSE 1000000
+#define DELAY 70000
+#define END_GAME_PAUSE 5000000
 #define TRUE 1
 #define FALSE 0
 #define MAX_LEN 101
+#define WINNING_SCORE 5
 
 int vertical_flag = 0;
 int horizontal_flag = 1;
@@ -20,7 +21,7 @@ int tailCollision = FALSE;
 // Global value for snake length
 int length = 0;
 
-
+short end_color = 4;
 
 /* This thread monitors key presses */
 void *key_monitor(void *arg) {
@@ -72,6 +73,7 @@ typedef struct snake_segment {
 /* Function Prototypes */
 void endGameMessage(int y, int x, char* message);
 int hasTailCollision(snake_segment* snake);
+void drawBorder(int dimY, int dimX);
 
 int main(void){
 
@@ -128,9 +130,11 @@ int main(void){
 
 	// Define snake color
 	init_pair(snake_head_color, COLOR_RED, COLOR_RED);
-	init_pair(snake_body_color, COLOR_MAGENTA, COLOR_MAGENTA);
+	init_pair(snake_body_color, COLOR_GREEN, COLOR_GREEN);
 	// Define food color
 	init_pair(food_color, COLOR_BLUE, COLOR_BLUE);
+	// Define end color
+	init_pair(end_color, COLOR_YELLOW, COLOR_BLACK);
 
 
 
@@ -173,10 +177,13 @@ int main(void){
 			food_gone = FALSE;
 		}
 
+
+		// Draw the perimeter
+		drawBorder(max_y, max_x);
 		// Print snake position coordinates display to buffer
-		mvprintw(max_y - 1, max_x - 9, "%d, %d", snake[0].x, snake[0].y);
+		mvprintw(max_y - 1, max_x - 13, "( %d, %d )", snake[0].x, snake[0].y);
 		// Print the current score
-		mvprintw(max_y - 1, 1, "SCORE: %d", length);
+		mvprintw(max_y - 1, 2, "[ SCORE: %d ]", length);
 
 		//Print food position to buffer
 		attron(COLOR_PAIR(food_color));
@@ -188,12 +195,19 @@ int main(void){
 
 		if(tailCollision)
 		{
-			endGameMessage(max_y - 1, (max_x / 2) - 4, "YOU LOSE!");
+			endGameMessage(max_y - 1, (max_x / 2) - 5, " YOU LOSE! ");
 			return 0;
 		}
 
-		//Pause briefly
+		// Pause briefly
 		usleep(DELAY);
+
+		// If the user has achieved the winning score then they have won!
+		if(length == WINNING_SCORE)
+		{
+			endGameMessage(max_y - 1, (max_x / 2) - 5, " YOU WIN! ");
+			return 0;
+		}
 
 		/* Setup snake's next position */
 
@@ -209,7 +223,7 @@ int main(void){
 			// If snake runs into the left or right boundary with a tail, then game over
 			if ((length != 0) && (snake_next_x >= (max_x - 1) || snake_next_x < 1))
 			{
-				endGameMessage(max_y - 1, (max_x / 2) - 4, "YOU LOSE!");
+				endGameMessage(max_y - 1, (max_x / 2) - 5, " YOU LOSE! ");
 				return 0;
 			}
 
@@ -228,7 +242,7 @@ int main(void){
 			// If snake runs into the top or bottom boundary with a tail, then game over
 			if ((length != 0) && (snake_next_y >= (max_y - 1) || snake_next_y < 1))
 			{
-				endGameMessage(max_y - 1, (max_x / 2) - 4, "YOU LOSE!");
+				endGameMessage(max_y - 1, (max_x / 2) - 5, " YOU LOSE! ");
 				return 0;
 			}
 
@@ -305,10 +319,30 @@ int hasTailCollision(snake_segment* snake)
 	return FALSE;
 }
 
+void drawBorder(int dimY, int dimX)
+{
+	int i = 0;
+
+	for(i = 0; i < dimX; i++)
+	{
+		mvprintw(0, i, "=");
+		mvprintw(dimY - 1, i, "=");
+	}
+
+	for(i = 0; i < dimY; i++)
+	{
+		mvprintw(i, 0, "|");
+		mvprintw(i, dimX - 1, "|");
+	}
+}
+
 // Display end-of-game message
 void endGameMessage(int y, int x, char* message)
 {
+
+	attron(COLOR_PAIR(end_color));
 	mvprintw(y, x, message);
+	attroff(COLOR_PAIR(end_color));
 	refresh();
 	usleep(END_GAME_PAUSE);
 	endwin();
