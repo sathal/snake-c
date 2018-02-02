@@ -98,9 +98,7 @@ void updateSnakeDirection(snake_segment* snake, int max_x, int max_y, int snake_
 		// If snake runs into the left or right boundary with a tail, then game over
 		if ((length != 0) && (snake_next_x >= (max_x - 1) || snake_next_x < 1))
 		{
-			//endGameMessage(max_y - 1, (max_x / 2) - 5, " YOU LOSE! ");
 			*wallCollision = TRUE;
-			//return 0;
 		}
 
 		if (snake_next_x >= (max_x - 1) || snake_next_x < 1) {
@@ -119,8 +117,6 @@ void updateSnakeDirection(snake_segment* snake, int max_x, int max_y, int snake_
 		if ((length != 0) && (snake_next_y >= (max_y - 1) || snake_next_y < 1))
 		{
 			*wallCollision = TRUE;
-			//endGameMessage(max_y - 1, (max_x / 2) - 5, " YOU LOSE! ");
-			//return 0;
 		}
 
 		if (snake_next_y >= (max_y - 1) || snake_next_y < 1) {
