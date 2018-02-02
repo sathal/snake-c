@@ -76,22 +76,21 @@ typedef struct snake_segment {
 
 /* Function Prototypes */
 void endGameMessage(int y, int x, char* message);
-int hasTailCollision(snake_segment* snake);
 void drawBorder(int dimY, int dimX);
 void initNcurses();
-void initSnake(snake_segment* snake);
 void initColorScheme();
-void printSnakeHead(int* segment, snake_segment* snake);
-void printSnakeBody(int* segment, snake_segment* snake);
 void clearScreen();
 void recordGameBoundaries(int* y, int* x);
+void printGameBorderAndStats(int max_y, int max_x, snake_segment* snake);
 void handleFood(int* max_x,int* max_y, int* foodX, int* foodY, int* food_gone);
 void printFood(int foodY, int foodX, int food_color);
-void printGameBorderAndStats(int max_y, int max_x, snake_segment* snake);
 void updateSnakeSegments(snake_segment* snake, int snake_prev_head_x, int snake_prev_head_y);
 void updateSnakeLength(snake_segment* snake, int foodX, int foodY, int* food_gone, int new_tailX, int new_tailY);
 void updateSnakeDirection(snake_segment* snake, int max_x, int max_y, int snake_next_x, int snake_next_y, int* wallCollision);
-
+int hasTailCollision(snake_segment* snake);
+void initSnake(snake_segment* snake);
+void printSnakeHead(int* segment, snake_segment* snake);
+void printSnakeBody(int* segment, snake_segment* snake);
 
 int main(void){
 
@@ -299,6 +298,7 @@ void clearScreen()
 	clear();
 }
 
+// Print the game border, the current score, and the coordinates of the snake head
 void printGameBorderAndStats(int max_y, int max_x, snake_segment* snake)
 {
 	// Draw the perimeter
