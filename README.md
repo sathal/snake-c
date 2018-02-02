@@ -12,4 +12,4 @@ In order to compile the files into an executable, run the following command in t
 
     gcc main.c snake.c -o snake -lncurses -pthread
   
-Note that this code makes use of threading (which is why we use the -pthread flag) and the ncurses library (which is why we use the -lncurses flag)
+Note that this code makes use of threading (which is why we use the -pthread flag) and the ncurses library (which is why we use the -lncurses flag).
