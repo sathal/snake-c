@@ -10,7 +10,7 @@
 #define TRUE 1
 #define FALSE 0
 #define MAX_LEN 101
-#define WINNING_SCORE 50
+#define WINNING_SCORE 30
 
 
 // Globals
@@ -20,6 +20,7 @@ int horizontal_flag = 1;
 int directionX = 1;
 int directionY = 1;
 int tailCollision = FALSE;
+int wallCollision = FALSE;
 short snake_head_color = 1;  // Color identifiers
 short snake_body_color = 2;
 short food_color = 3;
@@ -84,6 +85,12 @@ void printSnakeHead(int* segment, snake_segment* snake);
 void printSnakeBody(int* segment, snake_segment* snake);
 void clearScreen();
 void recordGameBoundaries(int* y, int* x);
+void handleFood(int* max_x,int* max_y, int* foodX, int* foodY, int* food_gone);
+void printFood(int foodY, int foodX, int food_color);
+void printGameBorderAndStats(int max_y, int max_x, snake_segment* snake);
+void updateSnakeSegments(snake_segment* snake, int snake_prev_head_x, int snake_prev_head_y);
+void updateSnakeLength(snake_segment* snake, int foodX, int foodY, int* food_gone, int new_tailX, int new_tailY);
+void updateSnakeDirection(snake_segment* snake, int max_x, int max_y, int snake_next_x, int snake_next_y, int* wallCollision);
 
 
 int main(void){
@@ -108,7 +115,7 @@ int main(void){
 	int snake_next_y = 0;
 	int snake_prev_head_x = 0;
 	int snake_prev_head_y = 0;
-	int segment = 0;
+	int segment = 0; // 0 designates the head, 1 designates the first tail segment, and so on so forth
 	int new_tailX = 0;
 	int new_tailY = 0;
 
@@ -116,39 +123,18 @@ int main(void){
 	snake_segment snake[MAX_LEN];
 	initSnake(snake);
 
+	// Seed the random number genertor (used to randomly place the food)
+	srand(time(NULL));
+
 	// Game Loop
 	while(1){
 
-		// Seed the random number genertor
-		srand(time(NULL));
-
 		recordGameBoundaries(&max_y, &max_x);
-		clearScreen();
+		handleFood(&max_x, &max_y, &foodX, &foodY, &food_gone);
 		printSnakeHead(&segment, snake);
 		printSnakeBody(&segment, snake);
-
-		//Calculate new food coordinates if da food is gone
-		if(food_gone){
-
-			// Take into account a 1-space boundary along all the sides of the screen
-			foodX = rand() % (max_x - 2) + 1;
-			foodY = rand() % (max_y - 2) + 1;
-
-			food_gone = FALSE;
-		}
-
-
-		// Draw the perimeter
-		drawBorder(max_y, max_x);
-		// Print snake position coordinates display to buffer
-		mvprintw(max_y - 1, max_x - 13, "( %d, %d )", snake[0].x, snake[0].y);
-		// Print the current score
-		mvprintw(max_y - 1, 2, "[ SCORE: %d ]", length);
-
-		//Print food position to buffer
-		attron(COLOR_PAIR(food_color));
-		mvprintw(foodY, foodX, " ");
-		attroff(COLOR_PAIR(food_color));
+		printGameBorderAndStats(max_y, max_x, snake);
+		printFood(foodY, foodX, food_color);
 
 		//Update the screen with the new material
 		refresh();
@@ -176,44 +162,7 @@ int main(void){
 		snake_prev_head_x = snake[0].x;
 		snake_prev_head_y = snake[0].y;
 
-		//Snake is moving horizontally
-		if(horizontal_flag){
-
-			snake_next_x = snake[0].x + directionX;
-
-			// If snake runs into the left or right boundary with a tail, then game over
-			if ((length != 0) && (snake_next_x >= (max_x - 1) || snake_next_x < 1))
-			{
-				endGameMessage(max_y - 1, (max_x / 2) - 5, " YOU LOSE! ");
-				return 0;
-			}
-
-			if (snake_next_x >= (max_x - 1) || snake_next_x < 1) {
-				directionX *= -1;
-			}
-
-			snake[0].x += directionX;
-		}
-
-		//Snake moving vertically
-		else{
-
-			snake_next_y = snake[0].y + directionY;
-
-			// If snake runs into the top or bottom boundary with a tail, then game over
-			if ((length != 0) && (snake_next_y >= (max_y - 1) || snake_next_y < 1))
-			{
-				endGameMessage(max_y - 1, (max_x / 2) - 5, " YOU LOSE! ");
-				return 0;
-			}
-
-			if (snake_next_y >= (max_y - 1) || snake_next_y < 1) {
-				directionY *= -1;
-			}
-
-			snake[0].y += directionY;
-
-		}
+		updateSnakeDirection(snake, max_x, max_y, snake_next_x, snake_next_y, &wallCollision);
 
 		// Check to see if the head has collided with the tail
 		if(hasTailCollision(snake))
@@ -221,54 +170,120 @@ int main(void){
 			tailCollision = TRUE;
 		}
 
+		// If the snake has collided with a wall, then the user has lost
+		if(wallCollision)
+		{
+			endGameMessage(max_y - 1, (max_x / 2) - 5, " YOU LOSE! ");
+			return 0;
+		}
+
 		// This is where the new segment (end of tail) will be placed if a food is consumed
 		new_tailX = snake[length].x;
 		new_tailY = snake[length].y;
 
-		// Update the segments of the snake
-		for(segment = length; segment > 0; segment--){
-			if(segment == 1)
-			{
-				// We need to reference the previous position of the snake's head here because index 0 has already been changed
-				snake[segment].x = snake_prev_head_x;
-				snake[segment].y = snake_prev_head_y;
-			}
-			else
-			{
-				snake[segment].x = snake[segment - 1].x;
-				snake[segment].y = snake[segment - 1].y;
-			}
-		}
+		updateSnakeSegments(snake, snake_prev_head_x, snake_prev_head_y);
+		updateSnakeLength(snake, foodX, foodY, &food_gone, new_tailX, new_tailY);
 
-
-		//If the snake eats the food, make him grow!
-		if((snake[0].x == foodX) && (snake[0].y == foodY)){
-			food_gone = TRUE;
-
-			length++;
-
-			snake[length].x = new_tailX;
-			snake[length].y = new_tailY;
-			snake[length].exists = TRUE;
-
-		}
-
+		clearScreen();
 
 	}
 
-	endwin();
-	return 0;
+}
+
+void updateSnakeDirection(snake_segment* snake, int max_x, int max_y, int snake_next_x, int snake_next_y, int* wallCollision)
+{
+	//Snake is moving horizontally
+	if(horizontal_flag){
+
+		snake_next_x = snake[0].x + directionX;
+
+		// If snake runs into the left or right boundary with a tail, then game over
+		if ((length != 0) && (snake_next_x >= (max_x - 1) || snake_next_x < 1))
+		{
+			//endGameMessage(max_y - 1, (max_x / 2) - 5, " YOU LOSE! ");
+			*wallCollision = TRUE;
+			//return 0;
+		}
+
+		if (snake_next_x >= (max_x - 1) || snake_next_x < 1) {
+			directionX *= -1;
+		}
+
+		snake[0].x += directionX;
+	}
+
+	//Snake moving vertically
+	else{
+
+		snake_next_y = snake[0].y + directionY;
+
+		// If snake runs into the top or bottom boundary with a tail, then game over
+		if ((length != 0) && (snake_next_y >= (max_y - 1) || snake_next_y < 1))
+		{
+			*wallCollision = TRUE;
+			//endGameMessage(max_y - 1, (max_x / 2) - 5, " YOU LOSE! ");
+			//return 0;
+		}
+
+		if (snake_next_y >= (max_y - 1) || snake_next_y < 1) {
+			directionY *= -1;
+		}
+
+		snake[0].y += directionY;
+
+	}
+}
+
+//If the snake eats the food, make him grow!
+void updateSnakeLength(snake_segment* snake, int foodX, int foodY, int* food_gone, int new_tailX, int new_tailY)
+{
+	if((snake[0].x == foodX) && (snake[0].y == foodY)){
+		*food_gone = TRUE;
+
+		length++;
+
+		snake[length].x = new_tailX;
+		snake[length].y = new_tailY;
+		snake[length].exists = TRUE;
+
+	}
+}
+
+
+// Update the segments of the snake
+void updateSnakeSegments(snake_segment* snake, int snake_prev_head_x, int snake_prev_head_y)
+{
+	int index = 0;
+
+	for(index = length; index > 0; index--){
+		if(index == 1)
+		{
+			// We need to reference the previous position of the snake's head here because index 0 has already been changed
+			snake[index].x = snake_prev_head_x;
+			snake[index].y = snake_prev_head_y;
+		}
+		else
+		{
+			snake[index].x = snake[index - 1].x;
+			snake[index].y = snake[index - 1].y;
+		}
+	}
 }
 
 
 
+//Calculate new food coordinates if da food is gone
+void handleFood(int* max_x,int* max_y, int* foodX, int* foodY, int* food_gone)
+{
+	if(*food_gone)
+	{
+		*foodX = rand() % (*max_x - 2) + 1;
+		*foodY = rand() % (*max_y - 2) + 1;
+		*food_gone = FALSE;
+	}
+}
 
-
-
-
-
-
-// Record the game boundaries
+// Record the game boundaries - this allows for the dynamic resizing of the game view screen
 void recordGameBoundaries(int* y, int* x)
 {
 	int max_x, max_y;
@@ -282,6 +297,24 @@ void recordGameBoundaries(int* y, int* x)
 void clearScreen()
 {
 	clear();
+}
+
+void printGameBorderAndStats(int max_y, int max_x, snake_segment* snake)
+{
+	// Draw the perimeter
+	drawBorder(max_y, max_x);
+	// Print snake position coordinates display to buffer
+	mvprintw(max_y - 1, max_x - 13, "( %d, %d )", snake[0].x, snake[0].y);
+	// Print the current score
+	mvprintw(max_y - 1, 2, "[ SCORE: %d ]", length);
+}
+
+//Print food position to buffer
+void printFood(int foodY, int foodX, int food_color)
+{
+	attron(COLOR_PAIR(food_color));
+	mvprintw(foodY, foodX, " ");
+	attroff(COLOR_PAIR(food_color));
 }
 
 // Print snake's body position to buffer
