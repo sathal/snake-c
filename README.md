@@ -1,6 +1,6 @@
 ## Summary
 
-This is my rendition of the classic Snake game written in C and is intended to be run in the terminal.
+This is my rendition of the classic Snake game written in C and it is intended to be run in the terminal.
 
 ## Dependencies
 
